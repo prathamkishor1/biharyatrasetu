@@ -1,24 +1,13 @@
-from flask import Flask, render_template, request, redirect, session, url_for
+from flask import Flask, render_template, request, redirect, session, url_for, g
 from flask_session import Session
 from flask_mail import Mail, Message
 from werkzeug.security import generate_password_hash, check_password_hash
 import mysql.connector
+import os
 
 # App setup
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
-
-# MySQL DB config
-import os
-
-db = mysql.connector.connect(
-    host=os.getenv("DB_HOST"),
-    user=os.getenv("DB_USER"),
-    password=os.getenv("DB_PASSWORD"),
-    database=os.getenv("DB_NAME")
-)
-
-
 
 # Session config
 app.config['SESSION_TYPE'] = 'filesystem'
@@ -32,6 +21,23 @@ app.config['MAIL_USERNAME'] = 'quizhunt413@gmail.com'
 app.config['MAIL_PASSWORD'] = 'isdr hbaa gcti vafo'
 mail = Mail(app)
 
+# 📦 Per-request MySQL connection
+def get_db():
+    if 'db' not in g:
+        g.db = mysql.connector.connect(
+            host=os.getenv("DB_HOST"),
+            user=os.getenv("DB_USER"),
+            password=os.getenv("DB_PASSWORD"),
+            database=os.getenv("DB_NAME")
+        )
+    return g.db
+
+@app.teardown_appcontext
+def close_db(exception):
+    db = g.pop('db', None)
+    if db is not None:
+        db.close()
+
 # Routes
 @app.route('/')
 def home():
@@ -39,6 +45,7 @@ def home():
 
 @app.route('/destinations')
 def destinations():
+    db = get_db()
     cursor = db.cursor(dictionary=True)
     cursor.execute("SELECT * FROM destinations")
     destinations = cursor.fetchall()
@@ -52,6 +59,7 @@ def signup():
         email = request.form['email']
         password = generate_password_hash(request.form['password'])
 
+        db = get_db()
         cursor = db.cursor()
         sql = "INSERT INTO users (name, email, password) VALUES (%s, %s, %s)"
         cursor.execute(sql, (name, email, password))
@@ -66,6 +74,7 @@ def login():
         email = request.form['email']
         password_input = request.form['password']
 
+        db = get_db()
         cursor = db.cursor(dictionary=True)
         cursor.execute("SELECT * FROM users WHERE email=%s", (email,))
         user = cursor.fetchone()
@@ -87,6 +96,7 @@ def logout():
 
 @app.route('/booking', methods=['GET', 'POST'])
 def booking():
+    db = get_db()
     cursor = db.cursor(dictionary=True)
     cursor.execute("SELECT * FROM destinations")
     destinations = cursor.fetchall()
@@ -99,16 +109,14 @@ def booking():
         date = request.form['date']
         travelers = int(request.form['travelers'])
         user_id = session['user_id']
-
         amount = travelers * 599  # ₹599 per traveler
 
         sql = "INSERT INTO bookings (destination_id, booking_date, travelers, amount, user_id, payment_status) VALUES (%s, %s, %s, %s, %s, %s)"
         cursor.execute(sql, (destination_id, date, travelers, amount, user_id, 'Pending'))
         db.commit()
+        booking_id = cursor.lastrowid
 
-        booking_id = cursor.lastrowid  # get newly created booking id
-
-        # Confirmation Email
+        # Email confirmation
         msg = Message('Bihar Yatra Setu | Booking Confirmed!',
                       sender=app.config['MAIL_USERNAME'],
                       recipients=[session['user_email']])
@@ -126,8 +134,8 @@ def payment(booking_id):
     if 'user_id' not in session:
         return redirect('/login')
 
+    db = get_db()
     cursor = db.cursor(dictionary=True)
-
     cursor.execute("""
         SELECT b.id, d.name AS destination, b.booking_date, b.travelers, b.payment_status
         FROM bookings b
@@ -141,7 +149,6 @@ def payment(booking_id):
         return redirect('/my-bookings')
 
     booking_amount = int(booking['travelers']) * 599
-
     cursor.close()
     return render_template('payment.html', booking=booking, booking_amount=booking_amount)
 
@@ -150,6 +157,7 @@ def confirm_payment(booking_id):
     if 'user_id' not in session:
         return redirect('/login')
 
+    db = get_db()
     cursor = db.cursor()
     cursor.execute("""
         UPDATE bookings SET payment_status = 'Paid'
@@ -160,13 +168,12 @@ def confirm_payment(booking_id):
 
     return redirect('/my-bookings')
 
-
-
 @app.route('/my-bookings')
 def my_bookings():
     if 'user_id' not in session:
         return redirect('/login')
 
+    db = get_db()
     cursor = db.cursor(dictionary=True)
     cursor.execute("""
         SELECT b.id, d.name AS destination, b.booking_date, b.travelers, b.amount, b.payment_status
@@ -180,15 +187,13 @@ def my_bookings():
 
     return render_template('my_bookings.html', bookings=bookings)
 
-
 @app.route('/cancel-booking/<int:booking_id>')
 def cancel_booking(booking_id):
     if 'user_id' not in session:
         return redirect('/login')
 
+    db = get_db()
     cursor = db.cursor(dictionary=True)
-
-    # Fetch booking details before deleting
     cursor.execute("""
         SELECT b.id, d.name AS destination, b.booking_date, b.travelers
         FROM bookings b
@@ -199,9 +204,9 @@ def cancel_booking(booking_id):
 
     if not booking:
         cursor.close()
-        return redirect('/my-bookings')  # Invalid booking id or unauthorized
+        return redirect('/my-bookings')
 
-    # Send cancellation email
+    # Email notification
     msg = Message('Bihar Yatra Setu | Booking Cancelled',
                   sender=app.config['MAIL_USERNAME'],
                   recipients=[session['user_email']])
@@ -212,20 +217,18 @@ Your booking for {booking['destination']} on {booking['booking_date']} for {book
 We're sorry to see you cancel — hope to serve you again soon!
 
 Thank you,
-Team Bihar Yatra Setu
-"""
+Team Bihar Yatra Setu"""
     mail.send(msg)
 
-    # Delete the booking
     cursor.execute("DELETE FROM bookings WHERE id = %s AND user_id = %s", (booking_id, session['user_id']))
     db.commit()
     cursor.close()
 
     return redirect('/my-bookings')
 
-
 @app.route('/reviews', methods=['GET', 'POST'])
 def reviews():
+    db = get_db()
     cursor = db.cursor(dictionary=True)
 
     if request.method == 'POST':
@@ -240,8 +243,6 @@ def reviews():
         values = (session['user_name'], destination_id, review_text, date)
         cursor.execute(sql, values)
         db.commit()
-
-        return redirect('/reviews')
 
     cursor.execute("SELECT * FROM destinations")
     destinations = cursor.fetchall()
@@ -264,6 +265,7 @@ def contact():
         email = request.form['email']
         message = request.form['message']
 
+        db = get_db()
         cursor = db.cursor()
         sql = "INSERT INTO contact (name, email, message) VALUES (%s, %s, %s)"
         cursor.execute(sql, (name, email, message))
@@ -275,8 +277,6 @@ def contact():
     return render_template('contact.html')
 
 # Run app
-import os
-
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=True)
