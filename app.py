@@ -10,11 +10,13 @@ app.secret_key = 'your_secret_key'
 
 # MySQL DB config
 db = mysql.connector.connect(
-    host="localhost",
-    user="root",
-    password="Pratham@123",
-    database="biharyatrasetu"
+    host="sql12.freesqldatabase.com",
+    user="sql12786794",
+    password="xVIgHTKFRG",
+    database="sql12786794",
+    port=3306
 )
+
 
 # Session config
 app.config['SESSION_TYPE'] = 'filesystem'
