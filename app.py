@@ -9,13 +9,15 @@ app = Flask(__name__)
 app.secret_key = 'your_secret_key'
 
 # MySQL DB config
+import os
+
 db = mysql.connector.connect(
-    host="sql12.freesqldatabase.com",
-    user="sql12786794",
-    password="xVIgHTKFRG",
-    database="sql12786794",
-    port=3306
+    host=os.getenv("DB_HOST"),
+    user=os.getenv("DB_USER"),
+    password=os.getenv("DB_PASSWORD"),
+    database=os.getenv("DB_NAME")
 )
+
 
 
 # Session config
