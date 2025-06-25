@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2 class="mb-4">Payment for {{ booking.destination }}</h2>
+
+    <p><strong>Booking Date:</strong> {{ booking.booking_date }}</p>
+    <p><strong>Number of Travelers:</strong> {{ booking.travelers }}</p>
+    <p><strong>Total Amount:</strong> ₹{{ booking_amount }}</p>
+    <p><strong>Current Payment Status:</strong> {{ booking.payment_status }}</p>
+
+    {% if booking.payment_status == 'Pending' %}
+        <form action="{{ url_for('confirm_payment', booking_id=booking.id) }}" method="post">
+            <button type="submit" class="btn btn-success">Confirm Payment</button>
+            <a href="{{ url_for('my_bookings') }}" class="btn btn-secondary">Cancel</a>
+        </form>
+    {% else %}
+        <div class="alert alert-success mt-3">
+            Payment already completed for this booking.
+        </div>
+        <a href="{{ url_for('my_bookings') }}" class="btn btn-primary">Back to My Bookings</a>
+    {% endif %}
+</div>
+{% endblock %}

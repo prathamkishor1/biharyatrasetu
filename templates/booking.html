@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<section class="booking">
+    <h2>Book Your Bihar Tour</h2>
+
+    <form method="POST">
+        <input type="text" name="name" placeholder="Your Name" required>
+        <input type="email" name="email" placeholder="Your Email" required>
+
+        <label>Select Destination:</label>
+        <select name="destination" required>
+            {% for dest in destinations %}
+                <option value="{{ dest.id }}">{{ dest.name }}</option>
+            {% endfor %}
+        </select>
+
+        <label>Booking Date:</label>
+        <input type="date" name="date" required>
+
+        <label>Number of Travelers:</label>
+        <input type="number" name="travelers" placeholder="How many people?" min="1" required>
+
+        <div class="options">
+            <label><input type="checkbox" name="guide"> Need a Guide</label>
+            <label><input type="checkbox" name="transport"> Need Transport</label>
+            <label><input type="checkbox" name="stay"> Need Stay</label>
+        </div>
+
+        <button type="submit" class="btn">Confirm Booking</button>
+
+        {% if request.args.get('success') %}
+            <p class="success">🎉 Booking successful!</p>
+        {% endif %}
+    </form>
+</section>
+{% endblock %}

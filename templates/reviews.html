@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<section class="reviews">
+    <h2>Tourist Reviews</h2>
+
+    <form method="POST">
+        <input type="text" name="name" placeholder="Your Name" required>
+        
+        <select name="destination" required>
+            {% for dest in destinations %}
+            <option value="{{ dest.id }}">{{ dest.name }}</option>
+            {% endfor %}
+        </select>
+        
+        <textarea name="review" placeholder="Write your review here..." required></textarea>
+        <input type="date" name="date" required>
+
+        <button type="submit" class="btn">Submit Review</button>
+    </form>
+
+    <div class="review-cards">
+        {% for rev in reviews %}
+        <div class="review-card">
+            <h3>{{ rev.name }}</h3>
+            <p><strong>Destination:</strong> {{ rev.destination }}</p>
+            <p>"{{ rev.review }}"</p>
+            <small>Posted on: {{ rev.date_posted }}</small>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

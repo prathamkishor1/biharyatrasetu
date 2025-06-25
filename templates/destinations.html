@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<section class="destinations">
+    <h2>Explore Bihar Destinations</h2>
+
+    <div class="cards">
+        {% for dest in destinations %}
+        <div class="card">
+            <img src="{{ url_for('static', filename='images/' + dest.image) }}" alt="{{ dest.name }}">
+            <h3>{{ dest.name }}</h3>
+            <p><strong>Location:</strong> {{ dest.location }}</p>
+            <p>{{ dest.description }}</p>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

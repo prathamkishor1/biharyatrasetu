@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Bihar Yatra Setu</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" href="{{ url_for('static', filename='images/logo.png') }}">
+</head>
+<body>
+    <header>
+        <!-- Madhubani Border Image -->
+        <img src="{{ url_for('static', filename='images/madhubani.png') }}" class="border-img">
+
+        <div class="header-flex">
+            <!-- Logo -->
+            <div class="logo">
+                <a href="/">
+                    <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Bihar Yatra Setu Logo">
+                </a>
+            </div>
+
+            <!-- Navigation -->
+            <nav>
+                <a href="/">Home</a>
+                <a href="/destinations">Destinations</a>
+                <a href="/booking">Book Tour</a>
+                <a href="/reviews">Reviews</a>
+                <a href="/contact">Contact</a>
+                {% if 'user_id' in session %}
+  <a href="/my-bookings">My Bookings</a>
+  <a href="/logout">Logout ({{ session['user_name'] }})</a>
+{% else %}
+  <a href="/signup">Signup</a>
+  <a href="/login">Login</a>
+{% endif %}
+
+            </nav>
+        </div>
+    </header>
+
+    {% block content %}{% endblock %}
+
+    <footer>
+        <p>&copy; 2025 Bihar Yatra Setu. Traditional Heart, Modern Travel.</p>
+    </footer>
+</body>
+</html>

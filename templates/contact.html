@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<section class="contact">
+    <h2>Contact Us</h2>
+
+    <form method="POST">
+        <input type="text" name="name" placeholder="Your Name" required>
+        <input type="email" name="email" placeholder="Your Email" required>
+        <textarea name="message" placeholder="Your Message..." required></textarea>
+        <button type="submit" class="btn">Send Message</button>
+
+        {% if request.args.get('success') %}
+            <p class="success">🎉 Thank you for contacting us!</p>
+        {% endif %}
+    </form>
+</section>
+{% endblock %}
